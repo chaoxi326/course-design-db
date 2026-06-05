@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.supermarket.mapper.PurchaseDetailMapper">
+
+    <insert id="insertDetailBatch">
+        INSERT INTO purchase_detail (d_id, o_id, p_id, d_quantity, d_price, d_total_price, d_remark)
+        VALUES
+        <foreach collection="detailList" item="det" separator=",">
+            (#{det.dId}, #{det.oId}, #{det.pId}, #{det.dQuantity}, #{det.dPrice}, #{det.dTotalPrice}, #{det.dRemark})
+        </foreach>
+    </insert>
+
+    <select id="selectAllDetails" resultType="com.example.supermarket.entity.PurchaseDetail">
+        SELECT d_id AS dId, o_id AS oId, p_id AS pId, d_quantity AS dQuantity,
+               d_price AS dPrice, d_total_price AS dTotalPrice, d_remark AS dRemark
+        FROM purchase_detail
+    </select>
+
+    <update id="updateDetail">
+        UPDATE purchase_detail
+        SET o_id = #{oId}, p_id = #{pId}, d_quantity = #{dQuantity},
+            d_price = #{dPrice}, d_total_price = #{dTotalPrice}, d_remark = #{dRemark}
+        WHERE d_id = #{dId}
+    </update>
+
+    <delete id="deleteDetailByOrderId">
+        DELETE FROM purchase_detail WHERE o_id = #{oId}
+    </delete>
+</mapper>

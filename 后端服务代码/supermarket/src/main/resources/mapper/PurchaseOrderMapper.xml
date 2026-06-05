@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.supermarket.mapper.PurchaseOrderMapper">
+
+    <insert id="insertOrderBatch">
+        INSERT INTO purchase_order (o_id, e_id, o_total_quantity, o_total_price, o_time, o_remark)
+        VALUES
+        <foreach collection="orderList" item="ord" separator=",">
+            (#{ord.oId}, #{ord.eId}, #{ord.oTotalQuantity}, #{ord.oTotalPrice}, #{ord.oTime}, #{ord.oRemark})
+        </foreach>
+    </insert>
+
+    <select id="selectAllOrders" resultType="com.example.supermarket.entity.PurchaseOrder">
+        SELECT o_id AS oId, e_id AS eId, o_total_quantity AS oTotalQuantity,
+               o_total_price AS oTotalPrice, o_time AS oTime, o_remark AS oRemark
+        FROM purchase_order
+    </select>
+
+    <update id="updateOrder">
+        UPDATE purchase_order
+        SET e_id = #{eId}, o_total_quantity = #{oTotalQuantity},
+            o_total_price = #{oTotalPrice}, o_time = #{oTime}, o_remark = #{oRemark}
+        WHERE o_id = #{oId}
+    </update>
+
+    <delete id="deleteOrderById">
+        DELETE FROM purchase_order WHERE o_id = #{oId}
+    </delete>
+</mapper>

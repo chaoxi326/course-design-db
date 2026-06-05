@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.supermarket.mapper.ProductMapper">
+
+    <insert id="insertProductBatch">
+        INSERT INTO product (p_id, p_name, p_price, s_id, p_intro, p_remark)
+        VALUES
+        <foreach collection="productList" item="prod" separator=",">
+            (#{prod.pId}, #{prod.pName}, #{prod.pPrice}, #{prod.sId}, #{prod.pIntro}, #{prod.pRemark})
+        </foreach>
+    </insert>
+
+    <select id="selectAllProducts" resultType="com.example.supermarket.entity.Product">
+        SELECT p_id AS pId, p_name AS pName, p_price AS pPrice,
+               s_id AS sId, p_intro AS pIntro, p_remark AS pRemark
+        FROM product
+    </select>
+
+    <update id="updateProduct">
+        UPDATE product
+        SET p_name = #{pName}, p_price = #{pPrice}, s_id = #{sId},
+            p_intro = #{pIntro}, p_remark = #{pRemark}
+        WHERE p_id = #{pId}
+    </update>
+
+    <delete id="deleteProductById">
+        DELETE FROM product WHERE p_id = #{pId}
+    </delete>
+
+</mapper>
+
+
+
+
+
+
+
+
+
+
+
+
+
+

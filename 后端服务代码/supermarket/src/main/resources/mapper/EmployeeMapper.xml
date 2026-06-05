@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.supermarket.mapper.EmployeeMapper">
+
+    <insert id="insertEmployeeBatch">
+        INSERT INTO employee (e_id, e_name, e_password, e_level, e_phone, e_salary, e_remark)
+        VALUES
+        <foreach collection="employeeList" item="emp" separator=",">
+            (#{emp.eId}, #{emp.eName}, #{emp.ePassword}, #{emp.eLevel}, #{emp.ePhone}, #{emp.eSalary}, #{emp.eRemark})
+        </foreach>
+    </insert>
+
+    <select id="selectAllEmployees" resultType="com.example.supermarket.entity.Employee">
+        SELECT e_id AS eId, e_name AS eName, e_password AS ePassword,
+               e_level AS eLevel, e_phone AS ePhone, e_salary AS eSalary,
+               e_remark AS eRemark
+        FROM employee
+    </select>
+
+    <update id="updateEmployee">
+        UPDATE employee
+        SET e_name = #{eName}, e_password = #{ePassword}, e_level = #{eLevel},
+            e_phone = #{ePhone}, e_salary = #{eSalary}, e_remark = #{eRemark}
+        WHERE e_id = #{eId}
+    </update>
+
+    <delete id="deleteEmployeeById">
+        DELETE FROM employee WHERE e_id = #{eId}
+    </delete>
+
+</mapper>

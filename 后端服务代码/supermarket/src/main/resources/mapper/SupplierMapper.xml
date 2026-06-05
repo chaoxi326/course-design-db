@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.supermarket.mapper.SupplierMapper">
+
+    <insert id="insertSupplierBatch">
+        INSERT INTO supplier (s_id, s_name, s_short_name, s_address, s_phone, s_email, s_contact_person, s_contact_phone, s_remark)
+        VALUES
+        <foreach collection="supplierList" item="sup" separator=",">
+            (#{sup.sId}, #{sup.sName}, #{sup.sShortName}, #{sup.sAddress}, #{sup.sPhone}, #{sup.sEmail}, #{sup.sContactPerson}, #{sup.sContactPhone}, #{sup.sRemark})
+        </foreach>
+    </insert>
+
+    <select id="selectAllSuppliers" resultType="com.example.supermarket.entity.Supplier">
+        SELECT s_id AS sId, s_name AS sName, s_short_name AS sShortName,
+               s_address AS sAddress, s_phone AS sPhone, s_email AS sEmail,
+               s_contact_person AS sContactPerson, s_contact_phone AS sContactPhone,
+               s_remark AS sRemark
+        FROM supplier
+    </select>
+
+    <update id="updateSupplier">
+        UPDATE supplier
+        SET s_name = #{sName}, s_short_name = #{sShortName}, s_address = #{sAddress},
+            s_phone = #{sPhone}, s_email = #{sEmail}, s_contact_person = #{sContactPerson},
+            s_contact_phone = #{sContactPhone}, s_remark = #{sRemark}
+        WHERE s_id = #{sId}
+    </update>
+
+    <delete id="deleteSupplierById">
+        DELETE FROM supplier WHERE s_id = #{sId}
+    </delete>
+
+</mapper>
