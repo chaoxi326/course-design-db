@@ -8,4 +8,5 @@ public interface EmployeeService {
     List<Employee> getAllEmployees();
     boolean modifyEmployee(Employee employee);
     boolean removeEmployee(String eId);
+    Employee login(String eId, String password);
 }

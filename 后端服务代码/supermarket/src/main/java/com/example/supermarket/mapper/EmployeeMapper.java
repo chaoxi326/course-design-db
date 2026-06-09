@@ -18,4 +18,7 @@ public interface EmployeeMapper {
 
     // 4. 删除指定员工数据
     int deleteEmployeeById(String eId);
+
+    // 5. 根据工号查询（用于登录验证）
+    Employee selectEmployeeById(String eId);
 }
