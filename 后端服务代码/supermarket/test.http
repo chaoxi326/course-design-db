@@ -1,0 +1,278 @@
+### =========================================================================
+### 超市管理系统 — 接口测试用例（字段已对齐实体类与数据库表结构）
+### =========================================================================
+
+### =========================================================================
+### 模块一：供应商管理 /api/suppliers
+### =========================================================================
+
+### 1. 批量录入供应商
+POST http://localhost:8080/api/suppliers/batch
+Content-Type: application/json
+
+[
+  {
+    "sId": "S001",
+    "sName": "可口可乐供应商有限公司",
+    "sShortName": "可乐供销",
+    "sAddress": "北京市海淀区中关村大街1号",
+    "sPhone": "010-12345678",
+    "sEmail": "cola@test.com",
+    "sContactPerson": "张经理",
+    "sContactPhone": "13811112222",
+    "sRemark": "主要负责碳酸饮料配送"
+  },
+  {
+    "sId": "S002",
+    "sName": "农夫山泉配送中心",
+    "sShortName": "农夫山泉",
+    "sAddress": "杭州市西湖区龙井路88号",
+    "sPhone": "0571-88889999",
+    "sEmail": "nongfu@test.com",
+    "sContactPerson": "李主管",
+    "sContactPhone": "13933334444",
+    "sRemark": "负责饮用水和茶饮料供应"
+  }
+]
+
+### 2. 查询所有供应商
+GET http://localhost:8080/api/suppliers
+
+### 3. 修改供应商信息
+PUT http://localhost:8080/api/suppliers
+Content-Type: application/json
+
+{
+  "sId": "S001",
+  "sName": "可口可乐供应商有限公司",
+  "sShortName": "可乐供销",
+  "sAddress": "北京市朝阳区建国路100号",
+  "sPhone": "010-87654321",
+  "sEmail": "cola_new@test.com",
+  "sContactPerson": "王经理",
+  "sContactPhone": "13900001111",
+  "sRemark": "地址已变更至朝阳区"
+}
+
+### 4. 删除指定供应商
+DELETE http://localhost:8080/api/suppliers/S002
+
+
+### =========================================================================
+### 模块二：商品管理 /api/products
+### =========================================================================
+
+### 1. 批量录入商品（关联供应商 S001）
+POST http://localhost:8080/api/products/batch
+Content-Type: application/json
+
+[
+  {
+    "pId": "P001",
+    "pName": "可口可乐500ml",
+    "pPrice": 3.00,
+    "sId": "S001",
+    "pIntro": "经典碳酸饮料，500ml瓶装",
+    "pRemark": "夏季畅销品"
+  },
+  {
+    "pId": "P002",
+    "pName": "农夫山泉矿泉水550ml",
+    "pPrice": 2.00,
+    "sId": "S001",
+    "pIntro": "天然饮用水，550ml瓶装",
+    "pRemark": ""
+  },
+  {
+    "pId": "P003",
+    "pName": "东方树叶乌龙茶",
+    "pPrice": 5.00,
+    "sId": "S001",
+    "pIntro": "无糖乌龙茶饮料，500ml",
+    "pRemark": "健康饮品"
+  }
+]
+
+### 2. 查询所有商品
+GET http://localhost:8080/api/products
+
+### 3. 修改商品信息
+PUT http://localhost:8080/api/products
+Content-Type: application/json
+
+{
+  "pId": "P001",
+  "pName": "可口可乐500ml(新包装)",
+  "pPrice": 3.50,
+  "sId": "S001",
+  "pIntro": "经典碳酸饮料，500ml瓶装，2026新包装",
+  "pRemark": "价格上调0.5元"
+}
+
+### 4. 删除指定商品
+DELETE http://localhost:8080/api/products/P003
+
+
+### =========================================================================
+### 模块三：员工管理 /api/employees
+### =========================================================================
+
+### 1. 批量录入员工
+POST http://localhost:8080/api/employees/batch
+Content-Type: application/json
+
+[
+  {
+    "eId": "E001",
+    "eName": "麦克斯",
+    "ePassword": "123456",
+    "eLevel": "管理员",
+    "ePhone": "18888889999",
+    "eSalary": 8000.00,
+    "eRemark": "采购经理，系统管理员"
+  },
+  {
+    "eId": "E002",
+    "eName": "卡若琳",
+    "ePassword": "123456",
+    "eLevel": "普通员工",
+    "ePhone": "17777776666",
+    "eSalary": 4500.00,
+    "eRemark": "收银员"
+  },
+  {
+    "eId": "E003",
+    "eName": "李华",
+    "ePassword": "123456",
+    "eLevel": "普通员工",
+    "ePhone": "16666665555",
+    "eSalary": 5000.00,
+    "eRemark": "理货员"
+  }
+]
+
+### 2. 查询所有员工
+GET http://localhost:8080/api/employees
+
+### 3. 修改员工信息
+PUT http://localhost:8080/api/employees
+Content-Type: application/json
+
+{
+  "eId": "E002",
+  "eName": "卡若琳",
+  "ePassword": "654321",
+  "eLevel": "普通员工",
+  "ePhone": "17777776666",
+  "eSalary": 5000.00,
+  "eRemark": "收银员，已调薪至5000"
+}
+
+### 4. 删除指定员工
+DELETE http://localhost:8080/api/employees/E003
+
+
+### =========================================================================
+### 模块四：采购管理 /api/purchase
+### =========================================================================
+
+### 1. 录入一笔采购单（主表 + 明细一起传）
+POST http://localhost:8080/api/purchase/batch
+Content-Type: application/json
+
+{
+  "orders": [
+    {
+      "oId": "PO20260605001",
+      "eId": "E001",
+      "oTotalQuantity": 150,
+      "oTotalPrice": 440.00,
+      "oTime": "2026-06-05T10:30:00",
+      "oRemark": "夏季饮料首批进货"
+    }
+  ],
+  "details": [
+    {
+      "dId": "PD001",
+      "oId": "PO20260605001",
+      "pId": "P001",
+      "dQuantity": 100,
+      "dPrice": 2.20,
+      "dTotalPrice": 220.00,
+      "dRemark": "可口可乐500ml采购明细"
+    },
+    {
+      "dId": "PD002",
+      "oId": "PO20260605001",
+      "pId": "P002",
+      "dQuantity": 50,
+      "dPrice": 4.40,
+      "dTotalPrice": 220.00,
+      "dRemark": "农夫山泉采购明细"
+    }
+  ]
+}
+
+### 2. 再录一笔采购单（测试多条订单）
+POST http://localhost:8080/api/purchase/batch
+Content-Type: application/json
+
+{
+  "orders": [
+    {
+      "oId": "PO20260605002",
+      "eId": "E001",
+      "oTotalQuantity": 80,
+      "oTotalPrice": 400.00,
+      "oTime": "2026-06-05T14:00:00",
+      "oRemark": "茶饮料补货"
+    }
+  ],
+  "details": [
+    {
+      "dId": "PD003",
+      "oId": "PO20260605002",
+      "pId": "P003",
+      "dQuantity": 80,
+      "dPrice": 5.00,
+      "dTotalPrice": 400.00,
+      "dRemark": "东方树叶补货明细"
+    }
+  ]
+}
+
+### 3. 查询所有采购订单（主表）
+GET http://localhost:8080/api/purchase/orders
+
+### 4. 查询所有采购明细
+GET http://localhost:8080/api/purchase/details
+
+### 5. 修改采购主表
+PUT http://localhost:8080/api/purchase/order
+Content-Type: application/json
+
+{
+  "oId": "PO20260605001",
+  "eId": "E001",
+  "oTotalQuantity": 200,
+  "oTotalPrice": 620.00,
+  "oTime": "2026-06-05T10:30:00",
+  "oRemark": "夏季饮料首批进货（数量已调整，追加了50瓶）"
+}
+
+### 6. 修改采购明细
+PUT http://localhost:8080/api/purchase/detail
+Content-Type: application/json
+
+{
+  "dId": "PD001",
+  "oId": "PO20260605001",
+  "pId": "P001",
+  "dQuantity": 150,
+  "dPrice": 2.20,
+  "dTotalPrice": 330.00,
+  "dRemark": "可口可乐采购明细（数量从100调整为150）"
+}
+
+### 7. 级联删除采购单（删主表 + 对应明细一起删）
+DELETE http://localhost:8080/api/purchase/PO20260605002

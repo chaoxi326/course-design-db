@@ -3,20 +3,19 @@ package com.example.supermarket.service.impl;
 import com.example.supermarket.entity.Supplier;
 import com.example.supermarket.mapper.SupplierMapper;
 import com.example.supermarket.service.SupplierService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
-@Service // 💡 别漏了：告诉Spring这是一个业务层组件
+@Service
+@RequiredArgsConstructor
 public class SupplierServiceImpl implements SupplierService {
 
-    @Autowired // 💡 自动把你的仓库管理员（Mapper）拉进来用
-    private SupplierMapper supplierMapper;
+    private final SupplierMapper supplierMapper;
 
     @Override
     public boolean saveSupplierBatch(List<Supplier> supplierList) {
         if (supplierList == null || supplierList.isEmpty()) return false;
-        // 调用你在 Mapper 接口里定义的批量插入
         return supplierMapper.insertSupplierBatch(supplierList) > 0;
     }
 

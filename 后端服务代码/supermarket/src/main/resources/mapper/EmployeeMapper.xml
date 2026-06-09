@@ -30,4 +30,12 @@
         DELETE FROM employee WHERE e_id = #{eId}
     </delete>
 
+    <select id="selectEmployeeById" resultType="com.example.supermarket.entity.Employee">
+        SELECT e_id AS eId, e_name AS eName, e_password AS ePassword,
+               e_level AS eLevel, e_phone AS ePhone, e_salary AS eSalary,
+               e_remark AS eRemark
+        FROM employee
+        WHERE e_id = #{eId}
+    </select>
+
 </mapper>
