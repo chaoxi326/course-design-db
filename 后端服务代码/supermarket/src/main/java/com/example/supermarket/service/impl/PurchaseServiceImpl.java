@@ -48,8 +48,18 @@ public class PurchaseServiceImpl implements PurchaseService {
     }
 
     @Override
+    @Transactional
     public boolean modifyDetail(PurchaseDetail detail) {
-        return detailMapper.updateDetail(detail) > 0;
+        boolean ok = detailMapper.updateDetail(detail) > 0;
+        if (ok) {
+            orderMapper.updateOrderTotals(detail.getOId());
+        }
+        return ok;
+    }
+
+    @Override
+    public boolean refreshOrderTotals(String oId) {
+        return orderMapper.updateOrderTotals(oId) > 0;
     }
 
     @Override

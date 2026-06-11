@@ -172,6 +172,16 @@ Content-Type: application/json
 DELETE http://localhost:8080/api/employees/E003
 
 
+### 5. 员工登录
+POST http://localhost:8080/api/employees/login
+Content-Type: application/json
+
+{
+  "eId": "E001",
+  "ePassword": "123456"
+}
+
+
 ### =========================================================================
 ### 模块四：采购管理 /api/purchase
 ### =========================================================================

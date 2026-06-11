@@ -15,6 +15,7 @@ public interface PurchaseService {
     // 3. 修改
     boolean modifyOrder(PurchaseOrder order);
     boolean modifyDetail(PurchaseDetail detail);
+    boolean refreshOrderTotals(String oId);
 
     // 4. 级联删除（严格对应需求：同时删除主表和明细）
     boolean removeOrderWithDetails(String oId);

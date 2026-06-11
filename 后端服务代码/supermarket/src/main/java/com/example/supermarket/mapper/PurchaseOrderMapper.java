@@ -11,4 +11,5 @@ public interface PurchaseOrderMapper {
     List<PurchaseOrder> selectAllOrders();
     int updateOrder(PurchaseOrder order);
     int deleteOrderById(String oId);
+    int updateOrderTotals(String oId);
 }

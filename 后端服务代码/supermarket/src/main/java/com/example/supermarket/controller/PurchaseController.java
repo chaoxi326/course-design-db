@@ -51,6 +51,13 @@ public class PurchaseController {
                 : Result.fail("明细修改失败");
     }
 
+    @PutMapping("/refresh/{oId}")
+    public Result<Void> refreshTotals(@PathVariable String oId) {
+        return purchaseService.refreshOrderTotals(oId)
+                ? Result.success()
+                : Result.fail("汇总更新失败");
+    }
+
     @DeleteMapping("/{oId}")
     public Result<Void> deletePurchase(@PathVariable String oId) {
         return purchaseService.removeOrderWithDetails(oId)

@@ -1,9 +1,9 @@
 package com.example.supermarket.controller;
 
+import com.example.supermarket.common.Result;
 import com.example.supermarket.entity.Product;
 import com.example.supermarket.service.ProductService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -15,23 +15,28 @@ public class ProductController {
     private final ProductService productService;
 
     @PostMapping("/batch")
-    public ResponseEntity<String> addProductBatch(@RequestBody List<Product> productList) {
-        boolean success = productService.saveProductBatch(productList);
-        return success ? ResponseEntity.ok("商品录入成功") : ResponseEntity.badRequest().body("商品录入失败");
+    public Result<Void> addProductBatch(@RequestBody List<Product> productList) {
+        return productService.saveProductBatch(productList)
+                ? Result.success()
+                : Result.fail("商品录入失败");
     }
 
     @GetMapping
-    public ResponseEntity<List<Product>> getAllProducts() {
-        return ResponseEntity.ok(productService.getAllProducts());
+    public Result<List<Product>> getAllProducts() {
+        return Result.success(productService.getAllProducts());
     }
 
     @PutMapping
-    public ResponseEntity<String> updateProduct(@RequestBody Product product) {
-        return productService.modifyProduct(product) ? ResponseEntity.ok("修改成功") : ResponseEntity.badRequest().body("修改失败");
+    public Result<Void> updateProduct(@RequestBody Product product) {
+        return productService.modifyProduct(product)
+                ? Result.success()
+                : Result.fail("修改失败");
     }
 
     @DeleteMapping("/{pId}")
-    public ResponseEntity<String> deleteProduct(@PathVariable String pId) {
-        return productService.removeProduct(pId) ? ResponseEntity.ok("删除成功") : ResponseEntity.badRequest().body("删除失败");
+    public Result<Void> deleteProduct(@PathVariable String pId) {
+        return productService.removeProduct(pId)
+                ? Result.success()
+                : Result.fail("删除失败");
     }
 }
