@@ -21,7 +21,12 @@
     </div>
 
     <div class="content-card">
-      <el-table :data="productList" border stripe v-loading="loading" style="width: 100%">
+      <el-table ref="tableRef" :data="productList" border stripe v-loading="loading" style="width: 100%" row-key="pId">
+        <el-table-column label="" width="50" align="center">
+          <template #default>
+            <span class="drag-handle"><el-icon size="16"><Grid /></el-icon></span>
+          </template>
+        </el-table-column>
         <el-table-column prop="pId" label="商品编号" width="110">
           <template #default="{ row }">
             <div class="cell-id">{{ row.pId }}</div>
@@ -113,10 +118,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { getProducts, saveProductBatch, updateProduct, deleteProduct } from '../../api/product'
 import { useUserStore } from '../../stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import Sortable from 'sortablejs'
 
 const store = useUserStore()
 const isAdmin = computed(() => store.isAdmin)
@@ -130,6 +136,7 @@ const submitting = ref(false)
 const batchLoading = ref(false)
 const batchJson = ref('')
 const formRef = ref(null)
+const tableRef = ref(null)
 
 const form = ref({
   pId: '', pName: '', pPrice: 0, sId: '', pIntro: '', pRemark: ''
@@ -138,6 +145,10 @@ const form = ref({
 const rules = {
   pId: [{ required: true, message: '请输入商品编号', trigger: 'blur' }],
   pName: [{ required: true, message: '请输入商品名称', trigger: 'blur' }],
+  pPrice: [
+    { required: true, message: '请输入单价', trigger: 'blur' },
+    { type: 'number', min: 0.01, message: '单价必须大于 0', trigger: 'blur' }
+  ],
   sId: [{ required: true, message: '请输入供应商编号', trigger: 'blur' }]
 }
 
@@ -214,7 +225,45 @@ function handleDelete(pId) {
   }).catch(() => {})
 }
 
-onMounted(fetchData)
+onMounted(async () => {
+  const saved = loadOrder('product_order')
+  await fetchData()
+  if (saved && saved.length === productList.value.length) {
+    const map = {}
+    productList.value.forEach(p => { map[p.pId] = p })
+    productList.value = saved.map(id => map[id]).filter(Boolean)
+  }
+  await nextTick()
+  initSortable()
+})
+
+function initSortable() {
+  const el = tableRef.value?.$el?.querySelector('.el-table__body-wrapper tbody')
+  if (!el) return
+  Sortable.create(el, {
+    animation: 200,
+    handle: '.drag-handle',
+    ghostClass: 'sortable-ghost',
+    onEnd(evt) {
+      const { oldIndex, newIndex } = evt
+      if (oldIndex === undefined || newIndex === undefined) return
+      const item = productList.value.splice(oldIndex, 1)[0]
+      productList.value.splice(newIndex, 0, item)
+      saveOrder('product_order', productList.value.map(p => p.pId))
+    }
+  })
+}
+
+function saveOrder(key, ids) {
+  localStorage.setItem(key, JSON.stringify(ids))
+}
+
+function loadOrder(key) {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
 </script>
 
 <style scoped>
@@ -252,5 +301,18 @@ onMounted(fetchData)
 }
 .batch-btn {
   border-radius: 8px;
+}
+.drag-handle {
+  cursor: grab;
+  color: #cbd5e1;
+  font-size: 16px;
+  display: inline-flex;
+  transition: color 0.15s;
+}
+.drag-handle:hover {
+  color: #6366f1;
+}
+.sortable-ghost {
+  opacity: 0.3;
 }
 </style>

@@ -19,14 +19,21 @@
 
     <div class="content-card">
       <el-table
+        ref="tableRef"
         :data="orderList"
         border
         stripe
         v-loading="loading"
         style="width: 100%"
+        row-key="oId"
         @row-click="goToDetail"
         :row-class-name="() => 'clickable-row'"
       >
+        <el-table-column label="" width="50" align="center">
+          <template #default>
+            <span class="drag-handle"><el-icon size="16"><Grid /></el-icon></span>
+          </template>
+        </el-table-column>
         <el-table-column prop="oId" label="采购单号" width="160">
           <template #default="{ row }">
             <div class="cell-order-id">{{ row.oId }}</div>
@@ -197,13 +204,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { getOrders, getDetails, savePurchase, updateOrder, deletePurchase } from '../../api/purchase'
 import { getEmployees } from '../../api/employee'
 import { getProducts } from '../../api/product'
 import { useUserStore } from '../../stores/user'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import Sortable from 'sortablejs'
 
 const store = useUserStore()
 const router = useRouter()
@@ -219,6 +227,7 @@ const editOrderVisible = ref(false)
 const submitting = ref(false)
 const orderFormRef = ref(null)
 const editOrderFormRef = ref(null)
+const tableRef = ref(null)
 
 const orderForm = ref({ oId: '', eId: '', oTotalQuantity: 0, oTotalPrice: 0, oTime: '', oRemark: '' })
 const editOrderForm = ref({ oId: '', eId: '', oTotalQuantity: 0, oTotalPrice: 0, oTime: '', oRemark: '' })
@@ -239,10 +248,7 @@ async function fetchOrders() {
     const map = {}
     emps.forEach(e => { map[e.eId] = e.eName })
     employeeMap.value = map
-    orderList.value = (orderRes.data || []).map(o => ({
-      ...o,
-      oTime: o.oTime ? o.oTime.replace('T', ' ') : ''
-    }))
+    orderList.value = orderRes.data || []
   } finally {
     loading.value = false
   }
@@ -308,7 +314,14 @@ async function handleSubmit() {
 }
 
 function openEditOrder(row) {
-  editOrderForm.value = { ...row }
+  editOrderForm.value = {
+    oId: row.oId,
+    eId: row.eId,
+    oTotalQuantity: row.oTotalQuantity,
+    oTotalPrice: row.oTotalPrice,
+    oTime: row.oTime,
+    oRemark: row.oRemark
+  }
   loadOptions()
   editOrderVisible.value = true
 }
@@ -339,7 +352,45 @@ function goToDetail(row) {
   router.push(`/purchase/detail/${row.oId}`)
 }
 
-onMounted(fetchOrders)
+onMounted(async () => {
+  const saved = loadOrder('purchase_order')
+  await fetchOrders()
+  if (saved && saved.length === orderList.value.length) {
+    const map = {}
+    orderList.value.forEach(o => { map[o.oId] = o })
+    orderList.value = saved.map(id => map[id]).filter(Boolean)
+  }
+  await nextTick()
+  initSortable()
+})
+
+function initSortable() {
+  const el = tableRef.value?.$el?.querySelector('.el-table__body-wrapper tbody')
+  if (!el) return
+  Sortable.create(el, {
+    animation: 200,
+    handle: '.drag-handle',
+    ghostClass: 'sortable-ghost',
+    onEnd(evt) {
+      const { oldIndex, newIndex } = evt
+      if (oldIndex === undefined || newIndex === undefined) return
+      const item = orderList.value.splice(oldIndex, 1)[0]
+      orderList.value.splice(newIndex, 0, item)
+      saveOrder('purchase_order', orderList.value.map(o => o.oId))
+    }
+  })
+}
+
+function saveOrder(key, ids) {
+  localStorage.setItem(key, JSON.stringify(ids))
+}
+
+function loadOrder(key) {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
 </script>
 
 <style scoped>
@@ -434,5 +485,18 @@ onMounted(fetchOrders)
 .dialog-detail-table .cell {
   overflow: visible !important;
   text-overflow: clip !important;
+}
+.drag-handle {
+  cursor: grab;
+  color: #cbd5e1;
+  font-size: 16px;
+  display: inline-flex;
+  transition: color 0.15s;
+}
+.drag-handle:hover {
+  color: #6366f1;
+}
+.sortable-ghost {
+  opacity: 0.3;
 }
 </style>
