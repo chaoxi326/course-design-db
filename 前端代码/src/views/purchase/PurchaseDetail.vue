@@ -85,31 +85,33 @@
     </div>
 
     <!-- 编辑明细弹窗 -->
-    <el-dialog v-model="editDetailVisible" title="编辑采购明细" width="880px" :close-on-click-modal="false" top="8vh">
+    <el-dialog v-model="editDetailVisible" title="编辑采购明细" width="900px" :close-on-click-modal="false" top="8vh">
       <el-table :data="editDetailList" border stripe style="width: 100%">
-        <el-table-column label="明细编号" width="200">
+        <el-table-column label="明细编号" width="130">
           <template #default="{ row }">
-            <el-input v-model="row.dId" size="small" placeholder="编号" />
+            <span class="cell-id">{{ row.dId }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="商品编号" width="200">
+        <el-table-column label="商品" min-width="220">
           <template #default="{ row }">
-            <el-input v-model="row.pId" size="small" placeholder="编号" />
+            <el-select v-model="row.pId" filterable placeholder="选择商品" style="width: 100%" @change="(val) => onEditProductChange(row, val)">
+              <el-option v-for="p in productList" :key="p.pId" :label="p.pName + ' (' + p.pId + ')'" :value="p.pId" />
+            </el-select>
           </template>
         </el-table-column>
-        <el-table-column label="数量" width="170">
+        <el-table-column label="数量" width="160">
           <template #default="{ row }">
-            <el-input-number v-model="row.dQuantity" :min="1" size="small" style="width: 100%" controls-position="right" />
+            <el-input-number v-model="row.dQuantity" :min="1" size="small" style="width: 100%" controls-position="right" @change="recalcEditDetail(row)" />
           </template>
         </el-table-column>
-        <el-table-column label="单价" width="180">
+        <el-table-column label="单价" width="130">
           <template #default="{ row }">
-            <el-input-number v-model="row.dPrice" :min="0" :precision="2" size="small" style="width: 100%" controls-position="right" />
+            <span class="cell-price">¥{{ row.dPrice?.toFixed(2) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="小计" min-width="100">
           <template #default="{ row }">
-            <span class="cell-subtotal">¥{{ (row.dQuantity * row.dPrice).toFixed(2) }}</span>
+            <span class="cell-subtotal">¥{{ ((row.dQuantity || 0) * (row.dPrice || 0)).toFixed(2) }}</span>
           </template>
         </el-table-column>
       </el-table>
@@ -136,6 +138,7 @@ const isAdmin = computed(() => store.isAdmin)
 const oId = route.params.oId
 const order = ref(null)
 const detailList = ref([])
+const productList = ref([])
 const productMap = ref({})
 const loadingDetail = ref(false)
 const editDetailVisible = ref(false)
@@ -147,13 +150,11 @@ async function fetchData() {
   try {
     const [orderRes, detailRes, prodRes] = await Promise.all([getOrders(), getDetails(), getProducts()])
     const products = prodRes.data || []
+    productList.value = products
     const map = {}
     products.forEach(p => { map[p.pId] = p.pName })
     productMap.value = map
     order.value = (orderRes.data || []).find(o => o.oId === oId)
-    if (order.value?.oTime) {
-      order.value.oTime = order.value.oTime.replace('T', ' ')
-    }
     detailList.value = (detailRes.data || []).filter(d => d.oId === oId)
   } finally {
     loadingDetail.value = false
@@ -165,11 +166,34 @@ function openEditDetail() {
   editDetailVisible.value = true
 }
 
+function onEditProductChange(row, pId) {
+  const prod = productList.value.find(p => p.pId === pId)
+  if (prod) {
+    row.dPrice = prod.pPrice
+    row.pName = prod.pName
+  }
+}
+
+function recalcEditDetail(row) {
+  // 数量变化时小计自动更新
+}
+
 async function handleEditDetail() {
   submitting.value = true
+  const errors = []
   try {
     for (const detail of editDetailList.value) {
-      await updateDetail(detail)
+      detail.dTotalPrice = (detail.dQuantity || 0) * (detail.dPrice || 0)
+      try {
+        await updateDetail(detail)
+      } catch {
+        errors.push(detail.dId || detail.pId || '未知行')
+      }
+    }
+    if (errors.length > 0) {
+      ElMessage.warning(`部分明细更新失败: ${errors.join(', ')}`)
+      try { await refreshOrderTotals(oId) } catch {}
+      return
     }
     await refreshOrderTotals(oId)
     ElMessage.success('明细更新成功')

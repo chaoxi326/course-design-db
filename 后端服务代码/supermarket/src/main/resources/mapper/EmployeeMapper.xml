@@ -21,8 +21,14 @@
 
     <update id="updateEmployee">
         UPDATE employee
-        SET e_name = #{eName}, e_password = #{ePassword}, e_level = #{eLevel},
-            e_phone = #{ePhone}, e_salary = #{eSalary}, e_remark = #{eRemark}
+        <set>
+            <if test="eName != null and eName != ''">e_name = #{eName},</if>
+            <if test="ePassword != null and ePassword != ''">e_password = #{ePassword},</if>
+            <if test="eLevel != null and eLevel != ''">e_level = #{eLevel},</if>
+            <if test="ePhone != null">e_phone = #{ePhone},</if>
+            <if test="eSalary != null">e_salary = #{eSalary},</if>
+            <if test="eRemark != null">e_remark = #{eRemark},</if>
+        </set>
         WHERE e_id = #{eId}
     </update>
 

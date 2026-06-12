@@ -21,7 +21,12 @@
     </div>
 
     <div class="content-card">
-      <el-table :data="supplierList" border stripe v-loading="loading" style="width: 100%">
+      <el-table ref="tableRef" :data="supplierList" border stripe v-loading="loading" style="width: 100%" row-key="sId">
+        <el-table-column label="" width="50" align="center">
+          <template #default>
+            <span class="drag-handle"><el-icon size="16"><Grid /></el-icon></span>
+          </template>
+        </el-table-column>
         <el-table-column prop="sId" label="编号" width="100">
           <template #default="{ row }">
             <div class="cell-id">{{ row.sId }}</div>
@@ -54,7 +59,7 @@
         <el-table-column prop="sRemark" label="备注" min-width="120" show-overflow-tooltip />
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
-            <div class="action-cell">
+            <div class="action-cell" v-if="isAdmin">
               <el-button type="primary" link size="small" @click="openDialog(row)">
                 <el-icon><Edit /></el-icon> 编辑
               </el-button>
@@ -133,10 +138,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { getSuppliers, saveSupplierBatch, updateSupplier, deleteSupplier } from '../../api/supplier'
 import { useUserStore } from '../../stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import Sortable from 'sortablejs'
 
 const store = useUserStore()
 const isAdmin = computed(() => store.isAdmin)
@@ -150,6 +156,7 @@ const submitting = ref(false)
 const batchLoading = ref(false)
 const batchJson = ref('')
 const formRef = ref(null)
+const tableRef = ref(null)
 
 const form = ref({
   sId: '', sName: '', sShortName: '', sAddress: '', sPhone: '',
@@ -158,7 +165,10 @@ const form = ref({
 
 const rules = {
   sId: [{ required: true, message: '请输入供应商编号', trigger: 'blur' }],
-  sName: [{ required: true, message: '请输入供应商名称', trigger: 'blur' }]
+  sName: [{ required: true, message: '请输入供应商名称', trigger: 'blur' }],
+  sEmail: [{ type: 'email', message: '请输入有效的邮箱地址', trigger: 'blur' }],
+  sPhone: [{ pattern: /^[0-9\-+() ]*$/, message: '请输入有效的电话号码', trigger: 'blur' }],
+  sContactPhone: [{ pattern: /^[0-9\-+() ]*$/, message: '请输入有效的电话号码', trigger: 'blur' }]
 }
 
 async function fetchData() {
@@ -234,7 +244,45 @@ function handleDelete(sId) {
   }).catch(() => {})
 }
 
-onMounted(fetchData)
+onMounted(async () => {
+  const saved = loadOrder('supplier_order')
+  await fetchData()
+  if (saved && saved.length === supplierList.value.length) {
+    const map = {}
+    supplierList.value.forEach(s => { map[s.sId] = s })
+    supplierList.value = saved.map(id => map[id]).filter(Boolean)
+  }
+  await nextTick()
+  initSortable()
+})
+
+function initSortable() {
+  const el = tableRef.value?.$el?.querySelector('.el-table__body-wrapper tbody')
+  if (!el) return
+  Sortable.create(el, {
+    animation: 200,
+    handle: '.drag-handle',
+    ghostClass: 'sortable-ghost',
+    onEnd(evt) {
+      const { oldIndex, newIndex } = evt
+      if (oldIndex === undefined || newIndex === undefined) return
+      const item = supplierList.value.splice(oldIndex, 1)[0]
+      supplierList.value.splice(newIndex, 0, item)
+      saveOrder('supplier_order', supplierList.value.map(s => s.sId))
+    }
+  })
+}
+
+function saveOrder(key, ids) {
+  localStorage.setItem(key, JSON.stringify(ids))
+}
+
+function loadOrder(key) {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
 </script>
 
 <style scoped>
@@ -282,5 +330,18 @@ onMounted(fetchData)
 }
 .batch-btn {
   border-radius: 8px;
+}
+.drag-handle {
+  cursor: grab;
+  color: #cbd5e1;
+  font-size: 16px;
+  display: inline-flex;
+  transition: color 0.15s;
+}
+.drag-handle:hover {
+  color: #6366f1;
+}
+.sortable-ghost {
+  opacity: 0.3;
 }
 </style>
