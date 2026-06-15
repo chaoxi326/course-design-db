@@ -1,0 +1,1 @@
+import{t as e}from"./request-B53OUCS_.js";function t(t){return e.post(`/api/employees/login`,t)}function n(){return e.get(`/api/employees`)}function r(t){return e.post(`/api/employees/batch`,t)}function i(t){return e.put(`/api/employees`,t)}function a(t){return e.delete(`/api/employees/${t}`)}export{i as a,r as i,n,t as r,a as t};
