@@ -106,6 +106,58 @@
         </el-table-column>
       </el-table>
     </div>
+
+    <!-- AI Analysis Section -->
+    <div class="section-header" style="margin-top: 32px">
+      <div class="section-title-group">
+        <div class="section-icon" style="background: linear-gradient(135deg, #fef3c7, #fde68a); color: #d97706;">
+          <el-icon :size="20"><ChatDotRound /></el-icon>
+        </div>
+        <div>
+          <h3>AI 智能分析</h3>
+          <p>基于当前数据生成经营分析报告</p>
+        </div>
+      </div>
+      <el-button
+        type="primary"
+        :loading="analyzing"
+        @click="runAnalysis"
+      >
+        <el-icon v-if="!analyzing"><ChatDotRound /></el-icon>
+        {{ analyzing ? '分析中...' : '开始分析' }}
+      </el-button>
+    </div>
+
+    <div class="ai-card" v-if="analysisResult || analyzing || analysisError">
+      <!-- Loading skeleton -->
+      <div v-if="analyzing" class="analysis-loading">
+        <div class="analysis-loading-icon">
+          <el-icon :size="32"><ChatDotRound /></el-icon>
+        </div>
+        <div class="loading-dots">
+          <span></span><span></span><span></span>
+        </div>
+        <p>AI 正在分析数据，请稍候...</p>
+      </div>
+
+      <!-- Result display -->
+      <div v-else-if="analysisResult" class="analysis-content">
+        <div class="analysis-meta">
+          <el-tag size="small" effect="plain" round>模型: {{ analysisMeta.model }}</el-tag>
+          <span class="analysis-tokens">
+            输入 {{ analysisMeta.inputTokens }} tokens · 输出 {{ analysisMeta.outputTokens }} tokens
+          </span>
+        </div>
+        <div class="markdown-body" v-html="renderedMarkdown"></div>
+      </div>
+
+      <!-- Error state -->
+      <div v-else-if="analysisError" class="analysis-error">
+        <el-icon :size="32"><WarningFilled /></el-icon>
+        <p>{{ analysisError }}</p>
+        <el-button size="small" @click="runAnalysis">重试</el-button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -115,6 +167,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '../../stores/user'
 import { getProducts } from '../../api/product'
 import { getDetails } from '../../api/purchase'
+import { getAnalysis } from '../../api/analysis'
 
 const router = useRouter()
 const store = useUserStore()
@@ -238,6 +291,93 @@ async function loadInventory() {
       .sort((a, b) => b.totalQty - a.totalQty)
   } finally {
     loading.value = false
+  }
+}
+
+// ==================== AI 分析 ====================
+
+const analyzing = ref(false)
+const analysisResult = ref('')
+const analysisError = ref('')
+const analysisMeta = ref({ model: '', inputTokens: 0, outputTokens: 0 })
+
+const renderedMarkdown = computed(() => {
+  let md = analysisResult.value
+  if (!md) return ''
+
+  // 转义 HTML
+  md = md.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+  // 代码块 ```...```
+  md = md.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+
+  // 行内代码 `...`
+  md = md.replace(/`([^`]+)`/g, '<code>$1</code>')
+
+  // 表格 |...|
+  md = md.replace(/^\|(.+)\|$/gm, (line) => {
+    const cells = line.split('|').filter(c => c.trim() !== '')
+    const isHeader = cells.every(c => /^[\s:-]+$/.test(c.trim()))
+    if (isHeader) return ''
+    const tag = line.match(/^[\s|]*[-:]+[\s|]*$/) ? '' : ''
+    const row = cells.map(c => {
+      const trimmed = c.trim()
+      if (/^[-:]+$/.test(trimmed)) return ''
+      return `<td>${trimmed}</td>`
+    }).join('')
+    return row ? `<tr>${row}</tr>` : ''
+  })
+  // 包装表格行
+  let hasTable = false
+  md = md.replace(/((?:<tr>.*?<\/tr>\n?)+)/g, (match) => {
+    hasTable = true
+    return `<table>${match}</table>`
+  })
+
+  // 标题
+  md = md.replace(/^#### (.+)$/gm, '<h4>$1</h4>')
+  md = md.replace(/^### (.+)$/gm, '<h3>$1</h3>')
+  md = md.replace(/^## (.+)$/gm, '<h2>$1</h2>')
+  md = md.replace(/^# (.+)$/gm, '<h1>$1</h1>')
+
+  // 粗体
+  md = md.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+
+  // 无序列表
+  md = md.replace(/^- (.+)$/gm, '<li>$1</li>')
+  md = md.replace(/((?:<li>.*?<\/li>\n?)+)/g, '<ul>$1</ul>')
+
+  // 水平线
+  md = md.replace(/^---$/gm, '<hr>')
+
+  // 段落：连续非空非标签行
+  md = md.replace(/\n\n+/g, '</p><p>')
+  md = '<p>' + md + '</p>'
+
+  // 清理空标签
+  md = md.replace(/<p>\s*<\/p>/g, '')
+  md = md.replace(/<p>(<[hut])/g, '$1')
+  md = md.replace(/(<\/[hut][^>]*>)<\/p>/g, '$1')
+
+  return md
+})
+
+async function runAnalysis() {
+  analyzing.value = true
+  analysisError.value = ''
+  analysisResult.value = ''
+  try {
+    const res = await getAnalysis({})
+    analysisResult.value = res.data.content
+    analysisMeta.value = {
+      model: res.data.model || '',
+      inputTokens: res.data.inputTokens || 0,
+      outputTokens: res.data.outputTokens || 0
+    }
+  } catch (e) {
+    analysisError.value = e.message || '分析请求失败'
+  } finally {
+    analyzing.value = false
   }
 }
 
@@ -539,5 +679,220 @@ onMounted(loadInventory)
 
 :deep(.el-table__body tr:hover td) {
   background-color: #f8fafc !important;
+}
+
+/* ========== AI Analysis ========== */
+
+.ai-card {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: white;
+  margin-bottom: 24px;
+}
+
+.analysis-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  gap: 16px;
+}
+
+.analysis-loading-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #d97706;
+}
+
+.analysis-loading p {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.loading-dots {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.loading-dots span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #d97706;
+  animation: dotPulse 1.4s ease-in-out infinite both;
+}
+
+.loading-dots span:nth-child(1) { animation-delay: 0s; }
+.loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dotPulse {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.analysis-content {
+  padding: 24px 28px 32px;
+}
+
+.analysis-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.analysis-tokens {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Markdown rendered body */
+.markdown-body {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--text-primary);
+}
+
+.markdown-body :deep(h1) {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 28px 0 12px;
+  color: var(--text-primary);
+}
+
+.markdown-body :deep(h2) {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 24px 0 10px;
+  color: var(--text-primary);
+  padding-bottom: 8px;
+  border-bottom: 2px solid #f1f5f9;
+}
+
+.markdown-body :deep(h3) {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 20px 0 8px;
+  color: var(--text-primary);
+}
+
+.markdown-body :deep(h4) {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 16px 0 6px;
+  color: var(--text-secondary);
+}
+
+.markdown-body :deep(p) {
+  margin: 8px 0;
+}
+
+.markdown-body :deep(strong) {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.markdown-body :deep(ul) {
+  padding-left: 24px;
+  margin: 8px 0;
+}
+
+.markdown-body :deep(li) {
+  margin: 4px 0;
+  color: var(--text-secondary);
+  list-style-type: disc;
+}
+
+.markdown-body :deep(code) {
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Inter', monospace;
+  font-size: 13px;
+  color: #6366f1;
+}
+
+.markdown-body :deep(pre) {
+  background: #1e293b;
+  color: #e2e8f0;
+  padding: 16px 20px;
+  border-radius: 10px;
+  overflow-x: auto;
+  margin: 12px 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.markdown-body :deep(pre code) {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+.markdown-body :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0 20px;
+  font-size: 13px;
+}
+
+.markdown-body :deep(th) {
+  background: #f8fafc;
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.markdown-body :deep(td) {
+  padding: 9px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  color: var(--text-primary);
+}
+
+.markdown-body :deep(tr:nth-child(even) td) {
+  background: #fafbfc;
+}
+
+.markdown-body :deep(hr) {
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 16px 0;
+}
+
+.analysis-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  gap: 12px;
+  color: #ef4444;
+}
+
+.analysis-error p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
 }
 </style>

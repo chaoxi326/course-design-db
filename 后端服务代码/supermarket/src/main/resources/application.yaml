@@ -8,8 +8,20 @@ spring:
     username: root
     password: yyy8848233@WZR
 
+# DeepSeek AI 分析配置
+deepseek:
+  api:
+    key: sk-3540a1de004a4475ae21da9c5a9143e1
+    model: deepseek-chat
+    max-tokens: 8192
+
 # MyBatis 配置
 mybatis:
   mapper-locations: classpath:mapper/*.xml
   configuration:
     map-underscore-to-camel-case: true # 自动把数据库的 s_name 转成 Java 的 sName
+
+logging:
+  level:
+    root: INFO
+    com.example.supermarket: DEBUG
