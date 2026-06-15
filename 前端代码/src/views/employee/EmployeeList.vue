@@ -21,7 +21,12 @@
     </div>
 
     <div class="content-card">
-      <el-table :data="employeeList" border stripe v-loading="loading" style="width: 100%">
+      <el-table ref="tableRef" :data="employeeList" border stripe v-loading="loading" style="width: 100%" row-key="eId">
+        <el-table-column label="" width="50" align="center">
+          <template #default>
+            <span class="drag-handle"><el-icon size="16"><Grid /></el-icon></span>
+          </template>
+        </el-table-column>
         <el-table-column prop="eId" label="工号" width="100">
           <template #default="{ row }">
             <div class="cell-id">{{ row.eId }}</div>
@@ -37,7 +42,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="eLevel" label="级别" width="110">
+        <el-table-column prop="eLevel" label="级别" width="130">
           <template #default="{ row }">
             <el-tag :type="row.eLevel === '管理员' ? 'danger' : 'info'" size="small" effect="light" round>
               {{ row.eLevel }}
@@ -76,7 +81,7 @@
           <el-input v-model="form.eName" placeholder="请输入姓名" />
         </el-form-item>
         <el-form-item label="密码" prop="ePassword">
-          <el-input v-model="form.ePassword" type="password" show-password placeholder="请输入密码" />
+          <el-input v-model="form.ePassword" type="password" show-password :placeholder="isEdit ? '留空则不修改密码' : '请输入密码'" />
         </el-form-item>
         <el-form-item label="级别" prop="eLevel">
           <el-select v-model="form.eLevel" style="width: 100%">
@@ -119,10 +124,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { getEmployees, saveEmployeeBatch, updateEmployee, deleteEmployee } from '../../api/employee'
 import { useUserStore } from '../../stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import Sortable from 'sortablejs'
 
 const store = useUserStore()
 const isAdmin = computed(() => store.isAdmin)
@@ -136,17 +142,21 @@ const submitting = ref(false)
 const batchLoading = ref(false)
 const batchJson = ref('')
 const formRef = ref(null)
+const tableRef = ref(null)
 
 const form = ref({
   eId: '', eName: '', ePassword: '', eLevel: '普通员工', ePhone: '', eSalary: 0, eRemark: ''
 })
 
-const rules = {
+const rules = computed(() => ({
   eId: [{ required: true, message: '请输入工号', trigger: 'blur' }],
   eName: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
-  ePassword: [{ required: true, message: '请输入密码', trigger: 'blur' }],
-  eLevel: [{ required: true, message: '请选择级别', trigger: 'change' }]
-}
+  ePassword: isEdit.value
+    ? []
+    : [{ required: true, message: '请输入密码', trigger: 'blur' }, { min: 1, message: '密码不能为空', trigger: 'blur' }],
+  eLevel: [{ required: true, message: '请选择级别', trigger: 'change' }],
+  ePhone: [{ pattern: /^[0-9\-+() ]*$/, message: '请输入有效的电话号码', trigger: 'blur' }]
+}))
 
 async function fetchData() {
   loading.value = true
@@ -161,7 +171,7 @@ async function fetchData() {
 function openDialog(row) {
   if (row) {
     isEdit.value = true
-    form.value = { ...row, ePassword: '' }
+    form.value = { eId: row.eId, eName: row.eName, ePassword: '', eLevel: row.eLevel, ePhone: row.ePhone, eSalary: row.eSalary, eRemark: row.eRemark }
   } else {
     isEdit.value = false
     form.value = { eId: '', eName: '', ePassword: '', eLevel: '普通员工', ePhone: '', eSalary: 0, eRemark: '' }
@@ -221,7 +231,46 @@ function handleDelete(eId) {
   }).catch(() => {})
 }
 
-onMounted(fetchData)
+onMounted(async () => {
+  const saved = loadOrder('employee_order')
+  await fetchData()
+  // 恢复保存的顺序
+  if (saved && saved.length === employeeList.value.length) {
+    const map = {}
+    employeeList.value.forEach(e => { map[e.eId] = e })
+    employeeList.value = saved.map(id => map[id]).filter(Boolean)
+  }
+  await nextTick()
+  initSortable()
+})
+
+function initSortable() {
+  const el = tableRef.value?.$el?.querySelector('.el-table__body-wrapper tbody')
+  if (!el) return
+  Sortable.create(el, {
+    animation: 200,
+    handle: '.drag-handle',
+    ghostClass: 'sortable-ghost',
+    onEnd(evt) {
+      const { oldIndex, newIndex } = evt
+      if (oldIndex === undefined || newIndex === undefined) return
+      const item = employeeList.value.splice(oldIndex, 1)[0]
+      employeeList.value.splice(newIndex, 0, item)
+      saveOrder('employee_order', employeeList.value.map(e => e.eId))
+    }
+  })
+}
+
+function saveOrder(key, ids) {
+  localStorage.setItem(key, JSON.stringify(ids))
+}
+
+function loadOrder(key) {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
 </script>
 
 <style scoped>
@@ -247,5 +296,21 @@ onMounted(fetchData)
 }
 .batch-btn {
   border-radius: 8px;
+}
+.drag-handle {
+  cursor: grab;
+  color: #cbd5e1;
+  font-size: 16px;
+  display: inline-flex;
+  transition: color 0.15s;
+}
+.drag-handle:hover {
+  color: #6366f1;
+}
+.sortable-ghost {
+  opacity: 0.3;
+}
+.sortable-ghost td {
+  background: transparent !important;
 }
 </style>

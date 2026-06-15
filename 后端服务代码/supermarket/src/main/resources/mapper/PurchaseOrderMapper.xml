@@ -26,4 +26,19 @@
     <delete id="deleteOrderById">
         DELETE FROM purchase_order WHERE o_id = #{oId}
     </delete>
+
+    <update id="updateOrderTotals">
+        UPDATE purchase_order o
+        SET o_total_quantity = (
+            SELECT COALESCE(SUM(d_quantity), 0)
+            FROM purchase_detail
+            WHERE o_id = #{oId}
+        ),
+        o_total_price = (
+            SELECT COALESCE(SUM(d_quantity * d_price), 0)
+            FROM purchase_detail
+            WHERE o_id = #{oId}
+        )
+        WHERE o_id = #{oId}
+    </update>
 </mapper>

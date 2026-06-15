@@ -16,7 +16,17 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public boolean saveProductBatch(List<Product> productList) {
         if (productList == null || productList.isEmpty()) return false;
-        // 假设你在 ProductMapper 里写的方法叫 insertProductBatch
+        for (Product p : productList) {
+            if (p.getPId() == null || p.getPId().isBlank()) {
+                throw new IllegalArgumentException("商品编号不能为空");
+            }
+            if (p.getPName() == null || p.getPName().isBlank()) {
+                throw new IllegalArgumentException("商品名称不能为空");
+            }
+            if (p.getPPrice() == null || p.getPPrice().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException("商品单价必须大于 0: " + p.getPId());
+            }
+        }
         return productMapper.insertProductBatch(productList) > 0;
     }
 

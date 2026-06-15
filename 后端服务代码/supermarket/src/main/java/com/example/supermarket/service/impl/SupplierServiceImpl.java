@@ -16,6 +16,14 @@ public class SupplierServiceImpl implements SupplierService {
     @Override
     public boolean saveSupplierBatch(List<Supplier> supplierList) {
         if (supplierList == null || supplierList.isEmpty()) return false;
+        for (Supplier s : supplierList) {
+            if (s.getSId() == null || s.getSId().isBlank()) {
+                throw new IllegalArgumentException("供应商编号不能为空");
+            }
+            if (s.getSName() == null || s.getSName().isBlank()) {
+                throw new IllegalArgumentException("供应商名称不能为空");
+            }
+        }
         return supplierMapper.insertSupplierBatch(supplierList) > 0;
     }
 

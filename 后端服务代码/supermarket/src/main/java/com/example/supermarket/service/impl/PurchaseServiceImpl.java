@@ -18,8 +18,25 @@ public class PurchaseServiceImpl implements PurchaseService {
     private final PurchaseDetailMapper detailMapper;
 
     @Override
-    @Transactional // 💡 开启事务：主表和明细表的插入要么同时成功，要么同时失败
+    @Transactional
     public boolean saveOrdersWithDetails(List<PurchaseOrder> orders, List<PurchaseDetail> details) {
+        if (orders != null) {
+            for (PurchaseOrder o : orders) {
+                if (o.getOId() == null || o.getOId().isBlank()) {
+                    throw new IllegalArgumentException("采购单号不能为空");
+                }
+                if (o.getEId() == null || o.getEId().isBlank()) {
+                    throw new IllegalArgumentException("经办员工不能为空");
+                }
+            }
+        }
+        if (details != null) {
+            for (PurchaseDetail d : details) {
+                if (d.getDQuantity() != null && d.getDQuantity() <= 0) {
+                    throw new IllegalArgumentException("采购数量必须大于 0: " + d.getDId());
+                }
+            }
+        }
         boolean orderSuccess = true;
         boolean detailSuccess = true;
 
@@ -52,7 +69,10 @@ public class PurchaseServiceImpl implements PurchaseService {
     public boolean modifyDetail(PurchaseDetail detail) {
         boolean ok = detailMapper.updateDetail(detail) > 0;
         if (ok) {
-            orderMapper.updateOrderTotals(detail.getOId());
+            int updated = orderMapper.updateOrderTotals(detail.getOId());
+            if (updated == 0) {
+                throw new IllegalStateException("采购单不存在，汇总更新失败: " + detail.getOId());
+            }
         }
         return ok;
     }

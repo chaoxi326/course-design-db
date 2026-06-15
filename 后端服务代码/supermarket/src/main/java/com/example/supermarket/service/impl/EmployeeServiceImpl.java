@@ -19,9 +19,16 @@ public class EmployeeServiceImpl implements EmployeeService {
     public boolean saveEmployeeBatch(List<Employee> employeeList) {
         if (employeeList == null || employeeList.isEmpty()) return false;
         for (Employee emp : employeeList) {
-            if (emp.getEPassword() != null && !emp.getEPassword().isEmpty()) {
-                emp.setEPassword(passwordEncoder.encode(emp.getEPassword()));
+            if (emp.getEId() == null || emp.getEId().isBlank()) {
+                throw new IllegalArgumentException("员工工号不能为空");
             }
+            if (emp.getEName() == null || emp.getEName().isBlank()) {
+                throw new IllegalArgumentException("员工姓名不能为空");
+            }
+            if (emp.getEPassword() == null || emp.getEPassword().isEmpty()) {
+                throw new IllegalArgumentException("员工密码不能为空: " + emp.getEId());
+            }
+            emp.setEPassword(passwordEncoder.encode(emp.getEPassword()));
         }
         return employeeMapper.insertEmployeeBatch(employeeList) > 0;
     }
